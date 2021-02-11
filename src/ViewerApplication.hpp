@@ -5,6 +5,20 @@
 #include "utils/filesystem.hpp"
 #include "utils/shaders.hpp"
 
+// ==============================
+// Forward declarations to avoid
+// useless inclusions.
+// ==============================
+
+namespace tinygltf
+{
+class Model;
+}
+
+// ==============================
+// ViewerApplication class.
+// ==============================
+
 class ViewerApplication
 {
 public:
@@ -14,6 +28,11 @@ public:
       const fs::path &output);
 
   int run();
+
+private:
+  // Load a glTF file.
+  // Returns true if the model is loaded. Otherwise, returns false.
+  bool loadGltfFile(tinygltf::Model &model) const;
 
 private:
   // A range of indices in a vector containing Vertex Array Objects
