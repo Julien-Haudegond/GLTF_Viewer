@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ms-vscode.cpptools",
+    "xaver.clang-format",
+    "twxs.cmake",
+    "mhutchie.git-graph",
+    "cadenas.vscode-glsllint",
+    "slevesque.shader"
+  ]
+}
