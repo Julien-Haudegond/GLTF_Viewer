@@ -24,9 +24,8 @@ void keyCallback(
 int ViewerApplication::run()
 {
   // Loader shaders
-  const auto glslProgram =
-      compileProgram({m_ShadersRootPath / m_vertexShader,
-          m_ShadersRootPath / m_fragmentShader});
+  const auto glslProgram = compileProgram({m_ShadersRootPath / m_vertexShader,
+      m_ShadersRootPath / m_fragmentShader});
 
   const auto modelViewProjMatrixLocation =
       glGetUniformLocation(glslProgram.glId(), "uModelViewProjMatrix");
