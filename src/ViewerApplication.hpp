@@ -30,6 +30,14 @@ public:
   int run();
 
 private:
+  // A range of indices in a vector containing Vertex Array Objects
+  struct VaoRange
+  {
+    GLsizei begin; // Index of first element in vertexArrayObjects
+    GLsizei count; // Number of elements in range
+  };
+
+private:
   // Load a glTF file.
   // Returns true if the model is loaded. Otherwise, returns false.
   bool loadGltfFile(tinygltf::Model &model) const;
@@ -37,13 +45,6 @@ private:
   // Create OpenGL Buffer Objects from the glTF model.
   std::vector<GLuint> createBufferObjects(const tinygltf::Model &model) const;
 
-private:
-  // A range of indices in a vector containing Vertex Array Objects
-  struct VaoRange
-  {
-    GLsizei begin; // Index of first element in vertexArrayObjects
-    GLsizei count; // Number of elements in range
-  };
 
   GLsizei m_nWindowWidth = 1280;
   GLsizei m_nWindowHeight = 720;
