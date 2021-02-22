@@ -13,6 +13,10 @@
 #include <stb_image_write.h>
 #include <tiny_gltf.h>
 
+const GLuint VERTEX_ATTRIB_POSITION_IDX = 0;
+const GLuint VERTEX_ATTRIB_NORMAL_IDX = 1;
+const GLuint VERTEX_ATTRIB_TEXCOORD0_IDX = 2;
+
 void keyCallback(
     GLFWwindow *window, int key, int scancode, int action, int mods)
 {
@@ -61,7 +65,10 @@ int ViewerApplication::run()
   // Creation of Buffer Objects
   auto bufferObjects = createBufferObjects(model);
 
-  // TODO Creation of Vertex Array Objects
+  // Creation of Vertex Array Objects
+  std::vector<VaoRange> meshIndexToVaoRange;
+  auto vertexArrayObjects =
+      createVertexArrayObjects(model, bufferObjects, meshIndexToVaoRange);
 
   // Setup OpenGL state for rendering
   glEnable(GL_DEPTH_TEST);
@@ -222,4 +229,106 @@ std::vector<GLuint> ViewerApplication::createBufferObjects(
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   return bufferObjects;
+}
+
+std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
+    const tinygltf::Model &model, const std::vector<GLuint> &bufferObjects,
+    std::vector<VaoRange> &meshIndexToVaoRange)
+{
+  // Empty vector of VAO identifiers.
+  std::vector<GLuint> vertexArrayObjects;
+
+  // Loop though all the meshes of the model.
+  for (size_t meshIdx = 0; meshIdx < model.meshes.size(); ++meshIdx) {
+    // Get essential information.
+    const auto &mesh = model.meshes[meshIdx];
+    const auto nbPrimitives = mesh.primitives.size();
+    const auto vaoOffset = vertexArrayObjects.size();
+
+    // Create place for all the primitive's VAO identifiers of this mesh.
+    vertexArrayObjects.resize(vaoOffset + nbPrimitives);
+    // Store the offsets as it will be used during rendering.
+    meshIndexToVaoRange.push_back(VaoRange{vaoOffset, nbPrimitives});
+
+    // Generate identifiers for all of those primitives.
+    glGenVertexArrays(nbPrimitives, &vertexArrayObjects[vaoOffset]);
+
+    // Loop through all the primitives of the mesh.
+    for (size_t primIdx = 0; primIdx < nbPrimitives; ++primIdx) {
+      // Get essential information.
+      const auto &primitive = mesh.primitives[primIdx];
+      const auto currentVao = vertexArrayObjects[vaoOffset + primIdx];
+
+      // Bind this VAO.
+      glBindVertexArray(currentVao);
+
+      // Set all the attributes. Can be done better.
+      { // POSITION
+        const auto iterator = primitive.attributes.find("POSITION");
+        if (iterator != end(primitive.attributes)) {
+          const auto accessorIdx = (*iterator).second;
+          const auto &accessor = model.accessors[accessorIdx];
+          const auto &bufferView = model.bufferViews[accessor.bufferView];
+          const auto bufferIdx = bufferView.buffer;
+
+          // Enable the vertex attrib array corresponding to POSITION.
+          glEnableVertexAttribArray(VERTEX_ATTRIB_POSITION_IDX);
+          glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[bufferIdx]);
+
+          const auto byteOffset = accessor.byteOffset + bufferView.byteOffset;
+          glVertexAttribPointer(VERTEX_ATTRIB_POSITION_IDX, accessor.type,
+              accessor.componentType, GL_FALSE, bufferView.byteStride,
+              (const GLvoid *)byteOffset);
+        }
+      }
+      { // NORMAL
+        const auto iterator = primitive.attributes.find("NORMAL");
+        if (iterator != end(primitive.attributes)) {
+          const auto accessorIdx = (*iterator).second;
+          const auto &accessor = model.accessors[accessorIdx];
+          const auto &bufferView = model.bufferViews[accessor.bufferView];
+          const auto bufferIdx = bufferView.buffer;
+
+          // Enable the vertex attrib array corresponding to NORMAL.
+          glEnableVertexAttribArray(VERTEX_ATTRIB_NORMAL_IDX);
+          glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[bufferIdx]);
+
+          const auto byteOffset = accessor.byteOffset + bufferView.byteOffset;
+          glVertexAttribPointer(VERTEX_ATTRIB_NORMAL_IDX, accessor.type,
+              accessor.componentType, GL_FALSE, bufferView.byteStride,
+              (const GLvoid *)byteOffset);
+        }
+      }
+      { // TEXCOORD0
+        const auto iterator = primitive.attributes.find("TEXCOORD0");
+        if (iterator != end(primitive.attributes)) {
+          const auto accessorIdx = (*iterator).second;
+          const auto &accessor = model.accessors[accessorIdx];
+          const auto &bufferView = model.bufferViews[accessor.bufferView];
+          const auto bufferIdx = bufferView.buffer;
+
+          // Enable the vertex attrib array corresponding to TEXCOORD0.
+          glEnableVertexAttribArray(VERTEX_ATTRIB_TEXCOORD0_IDX);
+          glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[bufferIdx]);
+
+          const auto byteOffset = accessor.byteOffset + bufferView.byteOffset;
+          glVertexAttribPointer(VERTEX_ATTRIB_TEXCOORD0_IDX, accessor.type,
+              accessor.componentType, GL_FALSE, bufferView.byteStride,
+              (const GLvoid *)byteOffset);
+        }
+      }
+
+      // Set the index buffer if there is one.
+      if (primitive.indices >= 0) {
+        const auto &accessor = model.accessors[primitive.indices];
+        const auto &bufferView = model.bufferViews[accessor.bufferView];
+        const auto bufferIdx = bufferView.buffer;
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[bufferIdx]);
+      }
+    }
+  }
+
+  glBindVertexArray(0);
+  return vertexArrayObjects;
 }

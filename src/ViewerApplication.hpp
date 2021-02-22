@@ -45,7 +45,11 @@ private:
   // Create OpenGL Buffer Objects from the glTF model.
   std::vector<GLuint> createBufferObjects(const tinygltf::Model &model) const;
 
+  std::vector<GLuint> createVertexArrayObjects(const tinygltf::Model &model,
+      const std::vector<GLuint> &bufferObjects,
+      std::vector<VaoRange> &meshIndexToVaoRange);
 
+private:
   GLsizei m_nWindowWidth = 1280;
   GLsizei m_nWindowHeight = 720;
 
