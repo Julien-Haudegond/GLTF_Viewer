@@ -58,7 +58,8 @@ int ViewerApplication::run()
   if (!loadGltfFile(model))
     throw std::exception("Cannot load the glTF model");
 
-  // TODO Creation of Buffer Objects
+  // Creation of Buffer Objects
+  auto bufferObjects = createBufferObjects(model);
 
   // TODO Creation of Vertex Array Objects
 
@@ -202,4 +203,23 @@ bool ViewerApplication::loadGltfFile(tinygltf::Model &model) const
   }
 
   return ret;
+}
+
+std::vector<GLuint> ViewerApplication::createBufferObjects(
+    const tinygltf::Model &model) const
+{
+  // Initialize the identifiers vector.
+  std::vector<GLuint> bufferObjects(model.buffers.size(), 0);
+  // Generate the identifiers.
+  glGenBuffers(bufferObjects.size(), bufferObjects.data());
+  // Bind the data of each buffer to one identifier.
+  for (size_t i = 0; i < bufferObjects.size(); ++i) {
+    glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[i]);
+    glBufferStorage(GL_ARRAY_BUFFER, model.buffers[i].data.size(),
+        model.buffers[i].data.data(), 0);
+  }
+  // Unbind the GL_ARRAY_BUFFER.
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  return bufferObjects;
 }

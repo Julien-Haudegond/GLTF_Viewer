@@ -34,6 +34,9 @@ private:
   // Returns true if the model is loaded. Otherwise, returns false.
   bool loadGltfFile(tinygltf::Model &model) const;
 
+  // Create OpenGL Buffer Objects from the glTF model.
+  std::vector<GLuint> createBufferObjects(const tinygltf::Model &model) const;
+
 private:
   // A range of indices in a vector containing Vertex Array Objects
   struct VaoRange
