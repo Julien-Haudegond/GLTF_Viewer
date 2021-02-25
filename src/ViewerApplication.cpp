@@ -10,6 +10,8 @@
 
 #include "utils/cameras.hpp"
 
+#include "utils/gltf.hpp"
+
 #include <stb_image_write.h>
 #include <tiny_gltf.h>
 
@@ -222,7 +224,7 @@ std::vector<GLuint> ViewerApplication::createBufferObjects(
   // Initialize the identifiers vector.
   std::vector<GLuint> bufferObjects(model.buffers.size(), 0);
   // Generate the identifiers.
-  glGenBuffers(bufferObjects.size(), bufferObjects.data());
+  glGenBuffers(GLsizei(bufferObjects.size()), bufferObjects.data());
   // Bind the data of each buffer to one identifier.
   for (size_t i = 0; i < bufferObjects.size(); ++i) {
     glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[i]);
@@ -252,10 +254,11 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
     // Create place for all the primitive's VAO identifiers of this mesh.
     vertexArrayObjects.resize(vaoOffset + nbPrimitives);
     // Store the offsets as it will be used during rendering.
-    meshIndexToVaoRange.push_back(VaoRange{vaoOffset, nbPrimitives});
+    meshIndexToVaoRange.push_back(
+        VaoRange{GLsizei(vaoOffset), GLsizei(nbPrimitives)});
 
     // Generate identifiers for all of those primitives.
-    glGenVertexArrays(nbPrimitives, &vertexArrayObjects[vaoOffset]);
+    glGenVertexArrays(GLsizei(nbPrimitives), &vertexArrayObjects[vaoOffset]);
 
     // Loop through all the primitives of the mesh.
     for (size_t primIdx = 0; primIdx < nbPrimitives; ++primIdx) {
@@ -281,7 +284,7 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
 
           const auto byteOffset = accessor.byteOffset + bufferView.byteOffset;
           glVertexAttribPointer(VERTEX_ATTRIB_POSITION_IDX, accessor.type,
-              accessor.componentType, GL_FALSE, bufferView.byteStride,
+              accessor.componentType, GL_FALSE, GLsizei(bufferView.byteStride),
               (const GLvoid *)byteOffset);
         }
       }
@@ -299,7 +302,7 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
 
           const auto byteOffset = accessor.byteOffset + bufferView.byteOffset;
           glVertexAttribPointer(VERTEX_ATTRIB_NORMAL_IDX, accessor.type,
-              accessor.componentType, GL_FALSE, bufferView.byteStride,
+              accessor.componentType, GL_FALSE, GLsizei(bufferView.byteStride),
               (const GLvoid *)byteOffset);
         }
       }
@@ -317,7 +320,7 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
 
           const auto byteOffset = accessor.byteOffset + bufferView.byteOffset;
           glVertexAttribPointer(VERTEX_ATTRIB_TEXCOORD0_IDX, accessor.type,
-              accessor.componentType, GL_FALSE, bufferView.byteStride,
+              accessor.componentType, GL_FALSE, GLsizei(bufferView.byteStride),
               (const GLvoid *)byteOffset);
         }
       }
