@@ -87,7 +87,64 @@ int ViewerApplication::run()
     // We use a std::function because a simple lambda cannot be recursive
     const std::function<void(int, const glm::mat4 &)> drawNode =
         [&](int nodeIdx, const glm::mat4 &parentMatrix) {
-          // TODO The drawNode function
+          // Get the node and compute its modelMatrix.
+          auto &node = model.nodes[nodeIdx];
+          const glm::mat4 modelMatrix =
+              getLocalToWorldMatrix(node, parentMatrix);
+
+          if (node.mesh >= 0) {
+            // Compute useful matrices.
+            const glm::mat4 modelViewMatrix =
+                camera.getViewMatrix() * modelMatrix;
+            const glm::mat4 modelViewProjectionMatrix =
+                projMatrix * modelViewMatrix;
+            const glm::mat4 normalMatrix =
+                glm::transpose(glm::inverse(modelViewMatrix));
+
+            // Send them to the GPU.
+            glUniformMatrix4fv(modelViewMatrixLocation, 1, GL_FALSE,
+                glm::value_ptr(modelViewMatrix));
+            glUniformMatrix4fv(modelViewProjMatrixLocation, 1, GL_FALSE,
+                glm::value_ptr(modelViewProjectionMatrix));
+            glUniformMatrix4fv(normalMatrixLocation, 1, GL_FALSE,
+                glm::value_ptr(normalMatrix));
+
+            // Get the mesh and its corresponding vaoRange.
+            auto &mesh = model.meshes[node.mesh];
+            auto &vaoRange = meshIndexToVaoRange[node.mesh];
+
+            // Draw each primitive of the mesh.
+            for (auto primIdx = 0; primIdx < mesh.primitives.size();
+                 ++primIdx) {
+              auto &primitive = mesh.primitives[primIdx];
+              auto vao = vertexArrayObjects[vaoRange.begin + primIdx];
+
+              glBindVertexArray(vao);
+
+              // If the primitive uses IBO.
+              if (primitive.indices >= 0) {
+                auto &accessor = model.accessors[primitive.indices];
+                auto &bufferView = model.bufferViews[accessor.bufferView];
+                const auto byteOffset =
+                    accessor.byteOffset + bufferView.byteOffset;
+
+                glDrawElements(primitive.mode, GLsizei(accessor.count),
+                    accessor.componentType, (const GLvoid *)byteOffset);
+              } else { // If not using IBO.
+                const auto accessorIdx = (*begin(primitive.attributes)).second;
+                const auto &accessor = model.accessors[accessorIdx];
+
+                glDrawArrays(primitive.mode, 0, GLsizei(accessor.count));
+              }
+            }
+            // Unbind the VAO.
+            glBindVertexArray(0);
+          }
+
+          // Recursively call the function on all children.
+          for (const auto childIdx : node.children) {
+            drawNode(childIdx, modelMatrix);
+          }
         };
 
     // Draw the scene referenced by gltf file
