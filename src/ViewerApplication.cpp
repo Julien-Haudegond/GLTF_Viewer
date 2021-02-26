@@ -261,15 +261,29 @@ int ViewerApplication::run()
       }
       if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen)) {
         // Add sliders for direction.
-        static float theta = 0.f;
-        static float phi = 0.f;
-        const auto thetaSlider = ImGui::SliderFloat(
-            "Light direction: theta", &theta, 0.f, 3.1415f, "%.2f");
-        const auto phiSlider = ImGui::SliderFloat(
-            "Light direction: phi", &phi, 0.f, 2 * 3.1415f, "%.2f");
-        if (thetaSlider || phiSlider) {
-          lightDirection = glm::vec3(glm::sin(theta) * glm::cos(phi),
-              glm::cos(theta), glm::sin(theta) * glm::sin(phi));
+        static bool lightFromCamera = false;
+        const auto lightFromCamCheckbox =
+            ImGui::Checkbox("Light from Camera", &lightFromCamera);
+
+        if (lightFromCamera) {
+          lightDirection = glm::vec3(0.f, 0.f, 1.f);
+        } else { // Light direction not computed from camera.
+          static float theta = 0.f;
+          static float phi = 0.f;
+
+          // If the box was just unchecked, compute direction.
+          if (lightFromCamCheckbox)
+            lightDirection = glm::vec3(glm::sin(theta) * glm::cos(phi),
+                glm::cos(theta), glm::sin(theta) * glm::sin(phi));
+
+          const auto thetaSlider = ImGui::SliderFloat(
+              "Light direction: theta", &theta, 0.f, 3.1415f, "%.2f");
+          const auto phiSlider = ImGui::SliderFloat(
+              "Light direction: phi", &phi, 0.f, 2 * 3.1415f, "%.2f");
+          if (thetaSlider || phiSlider) {
+            lightDirection = glm::vec3(glm::sin(theta) * glm::cos(phi),
+                glm::cos(theta), glm::sin(theta) * glm::sin(phi));
+          }
         }
 
         // Add color picker for intensity.
