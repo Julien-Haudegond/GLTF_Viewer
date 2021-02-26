@@ -41,6 +41,15 @@ int ViewerApplication::run()
   const auto normalMatrixLocation =
       glGetUniformLocation(glslProgram.glId(), "uNormalMatrix");
 
+  const auto lightDirectionLocation =
+      glGetUniformLocation(glslProgram.glId(), "uLightDirection");
+  const auto lightIntensityLocation =
+      glGetUniformLocation(glslProgram.glId(), "uLightIntensity");
+
+  glm::vec3 lightDirection(glm::sin(0.f) * glm::cos(0.f), glm::cos(0.f),
+      glm::sin(0.f) * glm::sin(0.f));
+  glm::vec3 lightIntensity(1.f, 1.f, 1.f);
+
   // Load the scene.
   tinygltf::Model model;
   // Loading the glTF file
@@ -92,6 +101,16 @@ int ViewerApplication::run()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     const auto viewMatrix = camera.getViewMatrix();
+
+    if (lightDirectionLocation >= 0 && lightIntensityLocation >= 0) {
+      const auto lightDirectionToSend =
+          glm::normalize(glm::vec3(viewMatrix * glm::vec4(lightDirection, 0)));
+
+      glUniform3f(lightIntensityLocation, lightIntensity.x, lightIntensity.y,
+          lightIntensity.z);
+      glUniform3f(lightDirectionLocation, lightDirection.x, lightDirection.y,
+          lightDirection.z);
+    }
 
     // The recursive function that should draw a node
     // We use a std::function because a simple lambda cannot be recursive
@@ -238,6 +257,29 @@ int ViewerApplication::run()
                 m_GLFWHandle.window(), 0.6f * maxDistance);
           }
           cameraController->setCamera(cam);
+        }
+      }
+      if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Add sliders for direction.
+        static float theta = 0.f;
+        static float phi = 0.f;
+        const auto thetaSlider = ImGui::SliderFloat(
+            "Light direction: theta", &theta, 0.f, 3.1415f, "%.2f");
+        const auto phiSlider = ImGui::SliderFloat(
+            "Light direction: phi", &phi, 0.f, 2 * 3.1415f, "%.2f");
+        if (thetaSlider || phiSlider) {
+          lightDirection = glm::vec3(glm::sin(theta) * glm::cos(phi),
+              glm::cos(theta), glm::sin(theta) * glm::sin(phi));
+        }
+
+        // Add color picker for intensity.
+        static float color[3] = {1.f, 1.f, 1.f};
+        static float intensity = 1.f;
+        const auto colorPicker = ImGui::ColorEdit3("Light color", color);
+        const auto intensityInput = ImGui::SliderFloat(
+            "Light Intensity", &intensity, 0.0f, 10.0f, "%.2f");
+        if (colorPicker || intensityInput) {
+          lightIntensity = glm::vec3(color[0], color[1], color[2]) * intensity;
         }
       }
       ImGui::End();
