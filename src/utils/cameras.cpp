@@ -107,4 +107,64 @@ bool FirstPersonCameraController::update(float elapsedTime)
   return true;
 }
 
-bool TrackballCameraController::update(float elapsedTime) { return false; }
+bool TrackballCameraController::update(float elapsedTime)
+{
+  // Check middle button state.
+  if (glfwGetMouseButton(m_pWindow, GLFW_MOUSE_BUTTON_MIDDLE) &&
+      !m_MiddleButtonPressed) {
+    m_MiddleButtonPressed = true;
+    glfwGetCursorPos(
+        m_pWindow, &m_LastCursorPosition.x, &m_LastCursorPosition.y);
+  } else if (!glfwGetMouseButton(m_pWindow, GLFW_MOUSE_BUTTON_MIDDLE) &&
+             m_MiddleButtonPressed) {
+    m_MiddleButtonPressed = false;
+  }
+
+  // Return if not pressed.
+  if (!m_MiddleButtonPressed)
+    return false;
+
+  // Get mouse offset.
+  const auto cursorDelta = ([&]() {
+    if (m_MiddleButtonPressed) {
+      dvec2 cursorPosition;
+      glfwGetCursorPos(m_pWindow, &cursorPosition.x, &cursorPosition.y);
+      const auto delta = cursorPosition - m_LastCursorPosition;
+      m_LastCursorPosition = cursorPosition;
+      return delta;
+    }
+    return dvec2(0);
+  })();
+
+  float offsetX = static_cast<float>(cursorDelta.x * m_fSpeed * elapsedTime);
+  float offsetY = static_cast<float>(cursorDelta.y * m_fSpeed * elapsedTime);
+
+  // Compute dolly move.
+  // We need to compute a new Eye position
+  // to avoid moving the Center point.
+  if (glfwGetKey(m_pWindow, GLFW_KEY_LEFT_CONTROL)) {
+    const auto viewVector = m_camera.center() - m_camera.eye();
+    // Make sure to always have eye != center.
+    if (offsetX > 0.99f)
+      offsetX = 0.99f;
+    const auto newEye = m_camera.eye() + (offsetX * viewVector);
+
+    setCamera(Camera{newEye, m_camera.center(), m_worldUpAxis});
+  }
+  // Compute truck/pedestal move.
+  else if (glfwGetKey(m_pWindow, GLFW_KEY_LEFT_SHIFT)) {
+    m_camera.moveLocal(offsetX, offsetY, 0);
+  }
+  // Rotate around the center.
+  else {
+    const auto depthAxis = m_camera.eye() - m_camera.center();
+    const auto tiltMatrix = rotate(mat4(1), offsetY, m_camera.left());
+    const auto panTiltMatrix = rotate(tiltMatrix, -offsetX, m_worldUpAxis);
+    const auto newDepthAxis = vec3(panTiltMatrix * vec4(depthAxis, 0));
+
+    const auto newEye = m_camera.center() + newDepthAxis;
+    setCamera(Camera{newEye, m_camera.center(), m_worldUpAxis});
+  }
+
+  return true;
+}
