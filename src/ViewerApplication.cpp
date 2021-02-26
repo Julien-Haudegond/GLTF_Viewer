@@ -66,10 +66,11 @@ int ViewerApplication::run()
       glm::perspective(70.f, float(m_nWindowWidth) / m_nWindowHeight,
           0.001f * maxDistance, 1.5f * maxDistance);
 
-  // TODO Implement a new CameraController model and use it instead. Propose the
-  // choice from the GUI
-  FirstPersonCameraController cameraController{
+  // FirstPersonCameraController cameraController{
+  // m_GLFWHandle.window(), 0.6f * maxDistance};
+  TrackballCameraController cameraController{
       m_GLFWHandle.window(), 0.6f * maxDistance};
+
   if (m_hasUserCamera) {
     cameraController.setCamera(m_userCamera);
   } else {
