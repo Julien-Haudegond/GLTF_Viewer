@@ -46,6 +46,11 @@ int ViewerApplication::run()
   const auto lightIntensityLocation =
       glGetUniformLocation(glslProgram.glId(), "uLightIntensity");
 
+  const auto baseColorTextureLocation =
+      glGetUniformLocation(glslProgram.glId(), "uBaseColorTexture");
+  const auto baseColorFactorLocation =
+      glGetUniformLocation(glslProgram.glId(), "uBaseColorFactor");
+
   glm::vec3 lightDirection(glm::sin(0.f) * glm::cos(0.f), glm::cos(0.f),
       glm::sin(0.f) * glm::sin(0.f));
   glm::vec3 lightIntensity(1.f, 1.f, 1.f);
@@ -113,6 +118,35 @@ int ViewerApplication::run()
   glEnable(GL_DEPTH_TEST);
   glslProgram.use();
 
+  const auto bindMaterial = [&](const auto materialIndex) {
+    if (materialIndex >= 0) {
+      const auto &material = model.materials[materialIndex];
+      const auto &pbrMetallicRoughness = material.pbrMetallicRoughness;
+      const auto baseColorIndex = pbrMetallicRoughness.baseColorTexture.index;
+      auto textureObject = whiteTexture;
+
+      if (baseColorIndex >= 0) {
+        textureObject = textureObjects[baseColorIndex];
+      }
+
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, textureObject);
+      glUniform1i(baseColorTextureLocation, 0);
+
+      glUniform4f(baseColorFactorLocation,
+          (float)pbrMetallicRoughness.baseColorFactor[0],
+          (float)pbrMetallicRoughness.baseColorFactor[1],
+          (float)pbrMetallicRoughness.baseColorFactor[2],
+          (float)pbrMetallicRoughness.baseColorFactor[3]);
+    } else {
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, whiteTexture);
+      glUniform1i(baseColorTextureLocation, 0);
+
+      glUniform4f(baseColorFactorLocation, 1.f, 1.f, 1.f, 1.f);
+    }
+  };
+
   // Lambda function to draw the scene
   const auto drawScene = [&](const Camera &camera) {
     glViewport(0, 0, m_nWindowWidth, m_nWindowHeight);
@@ -165,6 +199,8 @@ int ViewerApplication::run()
                  ++primIdx) {
               auto &primitive = mesh.primitives[primIdx];
               auto vao = vertexArrayObjects[vaoRange.begin + primIdx];
+
+              bindMaterial(primitive.material);
 
               glBindVertexArray(vao);
 
@@ -521,7 +557,7 @@ std::vector<GLuint> ViewerApplication::createTextureObjects(
 {
   // Texture identifiers.
   std::vector<GLuint> textureIds(model.textures.size(), 0);
-  glGenTextures(GLsizei(textureIds.size()), &textureIds[0]);
+  glGenTextures(GLsizei(textureIds.size()), textureIds.data());
 
   // Default sampler.
   tinygltf::Sampler defaultSampler;
@@ -542,14 +578,6 @@ std::vector<GLuint> ViewerApplication::createTextureObjects(
     const auto &sampler =
         texture.sampler >= 0 ? model.samplers[texture.sampler] : defaultSampler;
 
-    // Check if mipmapping is needed.
-    if (sampler.minFilter == GL_NEAREST_MIPMAP_NEAREST ||
-        sampler.minFilter == GL_NEAREST_MIPMAP_LINEAR ||
-        sampler.minFilter == GL_LINEAR_MIPMAP_NEAREST ||
-        sampler.minFilter == GL_LINEAR_MIPMAP_LINEAR) {
-      glGenerateMipmap(GL_TEXTURE_2D);
-    }
-
     // Bind texture object to target GL_TEXTURE_2D.
     glBindTexture(GL_TEXTURE_2D, textureIds[i]);
     // Set image data.
@@ -564,6 +592,14 @@ std::vector<GLuint> ViewerApplication::createTextureObjects(
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, sampler.wrapS);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, sampler.wrapT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, sampler.wrapR);
+
+    // Check if mipmapping is needed.
+    if (sampler.minFilter == GL_NEAREST_MIPMAP_NEAREST ||
+        sampler.minFilter == GL_NEAREST_MIPMAP_LINEAR ||
+        sampler.minFilter == GL_LINEAR_MIPMAP_NEAREST ||
+        sampler.minFilter == GL_LINEAR_MIPMAP_LINEAR) {
+      glGenerateMipmap(GL_TEXTURE_2D);
+    }
   }
   // Unbind texture.
   glBindTexture(GL_TEXTURE_2D, 0);
