@@ -66,7 +66,7 @@ int ViewerApplication::run()
 
   // Default texture.
   float white[] = {1, 1, 1, 1};
-  GLuint whiteTexture;
+  GLuint whiteTexture = 0;
   glGenTextures(1, &whiteTexture);
 
   glBindTexture(GL_TEXTURE_2D, whiteTexture);
@@ -160,8 +160,8 @@ int ViewerApplication::run()
 
       glUniform3f(lightIntensityLocation, lightIntensity.x, lightIntensity.y,
           lightIntensity.z);
-      glUniform3f(lightDirectionLocation, lightDirection.x, lightDirection.y,
-          lightDirection.z);
+      glUniform3f(lightDirectionLocation, lightDirectionToSend.x,
+          lightDirectionToSend.y, lightDirectionToSend.z);
     }
 
     // The recursive function that should draw a node
@@ -175,8 +175,7 @@ int ViewerApplication::run()
 
           if (node.mesh >= 0) {
             // Compute useful matrices.
-            const glm::mat4 modelViewMatrix =
-                camera.getViewMatrix() * modelMatrix;
+            const glm::mat4 modelViewMatrix = viewMatrix * modelMatrix;
             const glm::mat4 modelViewProjectionMatrix =
                 projMatrix * modelViewMatrix;
             const glm::mat4 normalMatrix =
@@ -320,7 +319,8 @@ int ViewerApplication::run()
             ImGui::Checkbox("Light from Camera", &lightFromCamera);
 
         if (lightFromCamera) {
-          lightDirection = glm::vec3(0.f, 0.f, 1.f);
+          lightDirection = glm::vec3(glm::inverse(camera.getViewMatrix()) *
+                                     glm::vec4(0.f, 0.f, 1.f, 0.f));
         } else { // Light direction not computed from camera.
           static float theta = 0.f;
           static float phi = 0.f;
@@ -518,8 +518,8 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
               (const GLvoid *)byteOffset);
         }
       }
-      { // TEXCOORD0
-        const auto iterator = primitive.attributes.find("TEXCOORD0");
+      { // TEXCOORD_0
+        const auto iterator = primitive.attributes.find("TEXCOORD_0");
         if (iterator != end(primitive.attributes)) {
           const auto accessorIdx = (*iterator).second;
           const auto &accessor = model.accessors[accessorIdx];
