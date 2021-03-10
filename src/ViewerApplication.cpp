@@ -51,6 +51,13 @@ int ViewerApplication::run()
   const auto baseColorFactorLocation =
       glGetUniformLocation(glslProgram.glId(), "uBaseColorFactor");
 
+  const auto metallicRoughnessTextureLocation =
+      glGetUniformLocation(glslProgram.glId(), "uMetallicRoughnessTexture");
+  const auto metallicFactorLocation =
+      glGetUniformLocation(glslProgram.glId(), "uMetallicFactor");
+  const auto roughnessFactorLocation =
+      glGetUniformLocation(glslProgram.glId(), "uRoughnessFactor");
+
   glm::vec3 lightDirection(glm::sin(0.f) * glm::cos(0.f), glm::cos(0.f),
       glm::sin(0.f) * glm::sin(0.f));
   glm::vec3 lightIntensity(1.f, 1.f, 1.f);
@@ -122,6 +129,8 @@ int ViewerApplication::run()
     if (materialIndex >= 0) {
       const auto &material = model.materials[materialIndex];
       const auto &pbrMetallicRoughness = material.pbrMetallicRoughness;
+
+      // Base Color.
       const auto baseColorIndex = pbrMetallicRoughness.baseColorTexture.index;
       auto textureObject = whiteTexture;
 
@@ -138,12 +147,39 @@ int ViewerApplication::run()
           (float)pbrMetallicRoughness.baseColorFactor[1],
           (float)pbrMetallicRoughness.baseColorFactor[2],
           (float)pbrMetallicRoughness.baseColorFactor[3]);
+
+      // Metallic/Roughness.
+      textureObject = 0u;
+      const auto baseMetallicRoughnessIndex =
+          pbrMetallicRoughness.metallicRoughnessTexture.index;
+      if (baseMetallicRoughnessIndex >= 0) {
+        textureObject = textureObjects[baseMetallicRoughnessIndex];
+      }
+
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D, textureObject);
+      glUniform1i(metallicRoughnessTextureLocation, 1);
+
+      glUniform1f(
+          metallicFactorLocation, (float)pbrMetallicRoughness.metallicFactor);
+      glUniform1f(
+          roughnessFactorLocation, (float)pbrMetallicRoughness.roughnessFactor);
+
     } else {
+      // Base color.
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, whiteTexture);
       glUniform1i(baseColorTextureLocation, 0);
 
       glUniform4f(baseColorFactorLocation, 1.f, 1.f, 1.f, 1.f);
+
+      // Metallic/Roughness.
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D, 0);
+      glUniform1i(metallicRoughnessTextureLocation, 1);
+
+      glUniform1f(metallicFactorLocation, 1.f);
+      glUniform1f(roughnessFactorLocation, 1.f);
     }
   };
 
