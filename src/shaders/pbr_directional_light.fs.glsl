@@ -13,6 +13,10 @@ uniform vec4 uBaseColorFactor;
 uniform sampler2D uEmissiveTexture;
 uniform vec3 uEmissiveFactor;
 
+uniform sampler2D uOcclusionTexture;
+uniform float uOcclusionFactor;
+uniform int uOcclusionEnabled;
+
 uniform float uMetallicFactor;
 uniform float uRoughnessFactor;
 uniform sampler2D uMetallicRoughnessTexture;
@@ -109,6 +113,15 @@ void main()
       SRGBtoLINEAR(texture(uEmissiveTexture, vTexCoords));
   vec3 emissive = emissiveFromTexture.rgb * uEmissiveFactor;
 
+
+  vec3 color = material * uLightIntensity * NdotL + emissive;
+
+  // Occlusion (based on the provided solution).
+  if(uOcclusionEnabled != 0) {
+    float ao = texture2D(uOcclusionTexture, vTexCoords).r;
+    color = mix(color, color * ao, uOcclusionFactor);
+  }
+
   // Output.
-  fColor = LINEARtoSRGB(material * uLightIntensity * NdotL + emissive);
+  fColor = LINEARtoSRGB(color);
 }

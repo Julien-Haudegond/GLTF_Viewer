@@ -63,9 +63,17 @@ int ViewerApplication::run()
   const auto emissiveFactorLocation =
       glGetUniformLocation(glslProgram.glId(), "uEmissiveFactor");
 
+  const auto occlusionTextureLocation =
+      glGetUniformLocation(glslProgram.glId(), "uOcclusionTexture");
+  const auto occlusionFactorLocation =
+      glGetUniformLocation(glslProgram.glId(), "uOcclusionFactor");
+  const auto occlusionEnabledLocation =
+      glGetUniformLocation(glslProgram.glId(), "uOcclusionEnabled");
+
   glm::vec3 lightDirection(glm::sin(0.f) * glm::cos(0.f), glm::cos(0.f),
       glm::sin(0.f) * glm::sin(0.f));
   glm::vec3 lightIntensity(1.f, 1.f, 1.f);
+  bool ambiantOcclusion = true;
 
   // Load the scene.
   tinygltf::Model model;
@@ -184,6 +192,21 @@ int ViewerApplication::run()
       glUniform3f(emissiveFactorLocation, (float)material.emissiveFactor[0],
           (float)material.emissiveFactor[1], (float)material.emissiveFactor[2]);
 
+      // Occlusion.
+      textureObject = 0u;
+      const auto occlusionTextureIndex = material.occlusionTexture.index;
+      if (occlusionTextureIndex >= 0) {
+        textureObject = textureObjects[occlusionTextureIndex];
+      }
+
+      glActiveTexture(GL_TEXTURE3);
+      glBindTexture(GL_TEXTURE_2D, textureObject);
+      glUniform1i(occlusionTextureLocation, 3);
+
+      glUniform1f(
+          occlusionFactorLocation, (float)material.occlusionTexture.strength);
+      glUniform1i(occlusionEnabledLocation, (int)ambiantOcclusion);
+
     } else {
       // Base color.
       glActiveTexture(GL_TEXTURE0);
@@ -206,6 +229,14 @@ int ViewerApplication::run()
       glUniform1i(emissiveTextureLocation, 2);
 
       glUniform3f(emissiveFactorLocation, 0.f, 0.f, 0.f);
+
+      // Occlusion.
+      glActiveTexture(GL_TEXTURE3);
+      glBindTexture(GL_TEXTURE_2D, 0);
+      glUniform1i(occlusionTextureLocation, 3);
+
+      glUniform1f(occlusionFactorLocation, 0.f);
+      glUniform1i(occlusionEnabledLocation, 0);
     }
   };
 
@@ -411,6 +442,10 @@ int ViewerApplication::run()
         if (colorPicker || intensityInput) {
           lightIntensity = glm::vec3(color[0], color[1], color[2]) * intensity;
         }
+
+        // Ambiant occlusion.
+        const auto ambiantOcclusionCheckbox =
+            ImGui::Checkbox("Ambiant Occlusion", &ambiantOcclusion);
       }
       ImGui::End();
     }
