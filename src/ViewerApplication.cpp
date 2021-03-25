@@ -19,6 +19,10 @@
 const GLuint VERTEX_ATTRIB_POSITION_IDX = 0;
 const GLuint VERTEX_ATTRIB_NORMAL_IDX = 1;
 const GLuint VERTEX_ATTRIB_TEXCOORD0_IDX = 2;
+const GLuint VERTEX_ATTRIB_TANGENT_IDX = 3;
+
+// Used only to clean up the buffers.
+std::vector<GLuint> tangentBuffers;
 
 void keyCallback(
     GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -578,6 +582,12 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
       // Bind this VAO.
       glBindVertexArray(currentVao);
 
+      float *positions = nullptr;
+      size_t positionsCount;
+
+      float *texCoords = nullptr;
+      size_t texCoordsCount;
+
       // Set all the attributes. Can be done better.
       { // POSITION
         const auto iterator = primitive.attributes.find("POSITION");
@@ -595,6 +605,12 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
           glVertexAttribPointer(VERTEX_ATTRIB_POSITION_IDX, accessor.type,
               accessor.componentType, GL_FALSE, GLsizei(bufferView.byteStride),
               (const GLvoid *)byteOffset);
+
+          const float *interpretPositions = reinterpret_cast<const float *>(
+              &model.buffers[bufferIdx].data[byteOffset]);
+
+          positions = (float *)(interpretPositions);
+          positionsCount = accessor.count;
         }
       }
       { // NORMAL
@@ -631,6 +647,12 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
           glVertexAttribPointer(VERTEX_ATTRIB_TEXCOORD0_IDX, accessor.type,
               accessor.componentType, GL_FALSE, GLsizei(bufferView.byteStride),
               (const GLvoid *)byteOffset);
+
+          const float *interpretTexCoords = reinterpret_cast<const float *>(
+              &model.buffers[bufferIdx].data[byteOffset]);
+
+          texCoords = (float *)(interpretTexCoords);
+          texCoordsCount = accessor.count;
         }
       }
 
@@ -641,6 +663,92 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
         const auto bufferIdx = bufferView.buffer;
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[bufferIdx]);
+
+        // Compute tangents for each vertex using the indices.
+        std::vector<glm::vec3> tangents(positionsCount);
+        const auto &indices = model.buffers[bufferIdx].data;
+
+        for (auto i = 0; i < indices.size(); i += 3) {
+          // Vertex indices.
+          const auto vertex0 = indices[i];
+          const auto vertex1 = indices[i + 1];
+          const auto vertex2 = indices[i + 2];
+
+          // Vertex 0.
+          auto indexPos = vertex0 * 3;
+          auto indexTex = vertex0 * 2;
+          const auto posV0 = glm::vec3(positions[indexPos + 0],
+              positions[indexPos + 1], positions[indexPos + 2]);
+          const auto texV0 =
+              glm::vec2(texCoords[indexTex + 0], texCoords[indexTex + 1]);
+          // Vertex 1.
+          indexPos = vertex1 * 3;
+          indexTex = vertex1 * 2;
+          const auto posV1 = glm::vec3(positions[indexPos + 0],
+              positions[indexPos + 1], positions[indexPos + 2]);
+          const auto texV1 =
+              glm::vec2(texCoords[indexTex + 0], texCoords[indexTex + 1]);
+          // Vertex 2.
+          indexPos = vertex2 * 3;
+          indexTex = vertex2 * 2;
+          const auto posV2 = glm::vec3(positions[indexPos + 0],
+              positions[indexPos + 1], positions[indexPos + 2]);
+          const auto texV2 =
+              glm::vec2(texCoords[indexTex + 0], texCoords[indexTex + 1]);
+
+          // Compute edges.
+          glm::vec3 edge1 = posV1 - posV0;
+          glm::vec3 edge2 = posV2 - posV0;
+
+          // Compute deltas.
+          float deltaU1 = texV1.x - texV0.x;
+          float deltaV1 = texV1.y - texV0.y;
+          float deltaU2 = texV2.x - texV0.x;
+          float deltaV2 = texV2.y - texV0.y;
+
+          float f = 1.0f / (deltaU1 * deltaV2 - deltaU2 * deltaV1);
+
+          glm::vec3 tangent;
+          tangent.x = f * (deltaV2 * edge1.x - deltaV1 * edge2.x);
+          tangent.y = f * (deltaV2 * edge1.y - deltaV1 * edge2.y);
+          tangent.z = f * (deltaV2 * edge1.z - deltaV1 * edge2.z);
+
+          // Add the tangent to vertices tangent.
+          tangents[vertex0] += tangent;
+          tangents[vertex1] += tangent;
+          tangents[vertex2] += tangent;
+        }
+
+        // Normalize every tangent.
+        for (auto &t : tangents) {
+          t = glm::normalize(t);
+        }
+
+        // Create another vector with only floats because
+        // I have no idea how to extract data from vec3 in the BufferStorage
+        // part.
+        std::vector<float> tangentsFloats(tangents.size() * 3);
+        for (auto i = 0; i < tangents.size(); ++i) {
+          const auto vec = tangents[i];
+          const auto index = i * 3;
+          tangentsFloats[index] = vec.x;
+          tangentsFloats[index + 1] = vec.y;
+          tangentsFloats[index + 2] = vec.z;
+        }
+
+        GLuint bufObj;
+        glGenBuffers(1, &bufObj);
+        glBindBuffer(GL_ARRAY_BUFFER, bufObj);
+        glBufferStorage(GL_ARRAY_BUFFER, tangentsFloats.size() * sizeof(float),
+            tangentsFloats.data(), 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        tangentBuffers.push_back(bufObj); // Used only to clean up the buffers.
+
+        // Enable the vertex attrib array corresponding to TANGENT.
+        glEnableVertexAttribArray(VERTEX_ATTRIB_TANGENT_IDX);
+        glBindBuffer(GL_ARRAY_BUFFER, bufObj);
+        glVertexAttribPointer(VERTEX_ATTRIB_TANGENT_IDX, 3, GL_FLOAT, GL_FALSE,
+            sizeof(float) * 3, 0);
       }
     }
   }
