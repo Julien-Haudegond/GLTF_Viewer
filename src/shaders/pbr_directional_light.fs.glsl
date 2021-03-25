@@ -24,6 +24,7 @@ uniform sampler2D uMetallicRoughnessTexture;
 
 uniform sampler2D uNormalMapTexture;
 uniform float uNormalMapFactor;
+uniform int uNormalMapEnabled;
 
 out vec3 fColor;
 
@@ -72,8 +73,10 @@ vec3 CalcBumpedNormal()
 // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#metal-brdf-and-dielectric-brdf
 void main()
 {
-  // vec3 N = normalize(vViewSpaceNormal); // Should be replaced by: normalize(CalcBumpedNormal())
-  vec3 N = normalize(CalcBumpedNormal());
+  vec3 N = normalize(vViewSpaceNormal);
+  // Use normal map if enabled.
+  if(uNormalMapEnabled != 0)
+    N = normalize(CalcBumpedNormal());
   vec3 L = uLightDirection;
   vec3 V = normalize(-vViewSpacePosition);
   vec3 H = normalize(L + V);

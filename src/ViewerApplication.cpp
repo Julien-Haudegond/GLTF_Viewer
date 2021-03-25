@@ -78,11 +78,14 @@ int ViewerApplication::run()
       glGetUniformLocation(glslProgram.glId(), "uNormalMapTexture");
   const auto normalMapFactorLocation =
       glGetUniformLocation(glslProgram.glId(), "uNormalMapFactor");
+  const auto normalMapEnabledLocation =
+      glGetUniformLocation(glslProgram.glId(), "uNormalMapEnabled");
 
   glm::vec3 lightDirection(glm::sin(0.f) * glm::cos(0.f), glm::cos(0.f),
       glm::sin(0.f) * glm::sin(0.f));
   glm::vec3 lightIntensity(1.f, 1.f, 1.f);
   bool ambiantOcclusion = true;
+  bool normalMap = true;
 
   // Load the scene.
   tinygltf::Model model;
@@ -227,6 +230,7 @@ int ViewerApplication::run()
       glBindTexture(GL_TEXTURE_2D, textureObject);
       glUniform1i(normalMapTextureLocation, 4);
       glUniform1f(normalMapFactorLocation, (float)material.normalTexture.scale);
+      glUniform1i(normalMapEnabledLocation, (int)normalMap);
 
     } else {
       // Base color.
@@ -467,6 +471,10 @@ int ViewerApplication::run()
         // Ambiant occlusion.
         const auto ambiantOcclusionCheckbox =
             ImGui::Checkbox("Ambiant Occlusion", &ambiantOcclusion);
+
+        // Normal map.
+        const auto normalMapCheckbox =
+            ImGui::Checkbox("Normal Map", &normalMap);
       }
       ImGui::End();
     }
