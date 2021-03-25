@@ -30,11 +30,6 @@ public:
   int run();
 
 private:
-  // Load a glTF file.
-  // Returns true if the model is loaded. Otherwise, returns false.
-  bool loadGltfFile(tinygltf::Model &model) const;
-
-private:
   // A range of indices in a vector containing Vertex Array Objects
   struct VaoRange
   {
@@ -42,6 +37,21 @@ private:
     GLsizei count; // Number of elements in range
   };
 
+private:
+  // Load a glTF file.
+  // Returns true if the model is loaded. Otherwise, returns false.
+  bool loadGltfFile(tinygltf::Model &model) const;
+
+  // Create OpenGL Buffer Objects from the glTF model.
+  std::vector<GLuint> createBufferObjects(const tinygltf::Model &model) const;
+
+  std::vector<GLuint> createVertexArrayObjects(const tinygltf::Model &model,
+      const std::vector<GLuint> &bufferObjects,
+      std::vector<VaoRange> &meshIndexToVaoRange);
+
+  std::vector<GLuint> createTextureObjects(const tinygltf::Model &model) const;
+
+private:
   GLsizei m_nWindowWidth = 1280;
   GLsizei m_nWindowHeight = 720;
 
@@ -51,7 +61,9 @@ private:
 
   fs::path m_gltfFilePath;
   std::string m_vertexShader = "forward.vs.glsl";
-  std::string m_fragmentShader = "normals.fs.glsl";
+  // std::string m_fragmentShader = "normals.fs.glsl";
+  // std::string m_fragmentShader = "diffuse_directional_light.fs.glsl";
+  std::string m_fragmentShader = "pbr_directional_light.fs.glsl";
 
   bool m_hasUserCamera = false;
   Camera m_userCamera;
