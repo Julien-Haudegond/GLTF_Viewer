@@ -76,6 +76,8 @@ int ViewerApplication::run()
 
   const auto normalMapTextureLocation =
       glGetUniformLocation(glslProgram.glId(), "uNormalMapTexture");
+  const auto normalMapFactorLocation =
+      glGetUniformLocation(glslProgram.glId(), "uNormalMapFactor");
 
   glm::vec3 lightDirection(glm::sin(0.f) * glm::cos(0.f), glm::cos(0.f),
       glm::sin(0.f) * glm::sin(0.f));
@@ -224,6 +226,7 @@ int ViewerApplication::run()
       glActiveTexture(GL_TEXTURE4);
       glBindTexture(GL_TEXTURE_2D, textureObject);
       glUniform1i(normalMapTextureLocation, 4);
+      glUniform1f(normalMapFactorLocation, (float)material.normalTexture.scale);
 
     } else {
       // Base color.

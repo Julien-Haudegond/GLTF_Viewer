@@ -23,6 +23,7 @@ uniform float uRoughnessFactor;
 uniform sampler2D uMetallicRoughnessTexture;
 
 uniform sampler2D uNormalMapTexture;
+uniform float uNormalMapFactor;
 
 out vec3 fColor;
 
@@ -60,6 +61,7 @@ vec3 CalcBumpedNormal()
     vec3 Bitangent = cross(Tangent, Normal);
     vec3 BumpMapNormal = texture(uNormalMapTexture, vTexCoords).xyz;
     BumpMapNormal = 2.0 * BumpMapNormal - vec3(1.0, 1.0, 1.0);
+    BumpMapNormal *= vec3(uNormalMapFactor, uNormalMapFactor, 1.0);
     vec3 NewNormal;
     mat3 TBN = mat3(Tangent, Bitangent, Normal);
     NewNormal = TBN * BumpMapNormal;
