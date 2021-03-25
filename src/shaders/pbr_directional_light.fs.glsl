@@ -3,6 +3,7 @@
 in vec3 vViewSpacePosition;
 in vec3 vViewSpaceNormal;
 in vec2 vTexCoords;
+in vec3 vViewSpaceTangent;
 
 uniform vec3 uLightDirection;
 uniform vec3 uLightIntensity;
@@ -51,10 +52,26 @@ int heaviside(float x) {
     return (x > 0) ? 1 : 0;
 }
 
+vec3 CalcBumpedNormal()
+{
+    vec3 Normal = normalize(vViewSpaceNormal);
+    vec3 Tangent = normalize(vViewSpaceTangent);
+    Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
+    vec3 Bitangent = cross(Tangent, Normal);
+    vec3 BumpMapNormal = texture(uNormalMapTexture, vTexCoords).xyz;
+    BumpMapNormal = 2.0 * BumpMapNormal - vec3(1.0, 1.0, 1.0);
+    vec3 NewNormal;
+    mat3 TBN = mat3(Tangent, Bitangent, Normal);
+    NewNormal = TBN * BumpMapNormal;
+    NewNormal = normalize(NewNormal);
+    return NewNormal;
+}
+
 // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#metal-brdf-and-dielectric-brdf
 void main()
 {
-  vec3 N = normalize(vViewSpaceNormal);
+  vec3 N = normalize(vViewSpaceNormal); // Should be replaced by: normalize(CalcBumpedNormal())
+  // vec3 N = normalize(CalcBumpedNormal());
   vec3 L = uLightDirection;
   vec3 V = normalize(-vViewSpacePosition);
   vec3 H = normalize(L + V);
