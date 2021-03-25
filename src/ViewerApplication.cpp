@@ -58,6 +58,11 @@ int ViewerApplication::run()
   const auto roughnessFactorLocation =
       glGetUniformLocation(glslProgram.glId(), "uRoughnessFactor");
 
+  const auto emissiveTextureLocation =
+      glGetUniformLocation(glslProgram.glId(), "uEmissiveTexture");
+  const auto emissiveFactorLocation =
+      glGetUniformLocation(glslProgram.glId(), "uEmissiveFactor");
+
   glm::vec3 lightDirection(glm::sin(0.f) * glm::cos(0.f), glm::cos(0.f),
       glm::sin(0.f) * glm::sin(0.f));
   glm::vec3 lightIntensity(1.f, 1.f, 1.f);
@@ -165,6 +170,20 @@ int ViewerApplication::run()
       glUniform1f(
           roughnessFactorLocation, (float)pbrMetallicRoughness.roughnessFactor);
 
+      // Emissive.
+      textureObject = 0u;
+      const auto emissiveTextureIndex = material.emissiveTexture.index;
+      if (emissiveTextureIndex >= 0) {
+        textureObject = textureObjects[emissiveTextureIndex];
+      }
+
+      glActiveTexture(GL_TEXTURE2);
+      glBindTexture(GL_TEXTURE_2D, textureObject);
+      glUniform1i(emissiveTextureLocation, 2);
+
+      glUniform3f(emissiveFactorLocation, (float)material.emissiveFactor[0],
+          (float)material.emissiveFactor[1], (float)material.emissiveFactor[2]);
+
     } else {
       // Base color.
       glActiveTexture(GL_TEXTURE0);
@@ -180,6 +199,13 @@ int ViewerApplication::run()
 
       glUniform1f(metallicFactorLocation, 1.f);
       glUniform1f(roughnessFactorLocation, 1.f);
+
+      // Emissive.
+      glActiveTexture(GL_TEXTURE2);
+      glBindTexture(GL_TEXTURE_2D, 0);
+      glUniform1i(emissiveTextureLocation, 2);
+
+      glUniform3f(emissiveFactorLocation, 0.f, 0.f, 0.f);
     }
   };
 

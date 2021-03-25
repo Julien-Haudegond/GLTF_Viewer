@@ -10,6 +10,9 @@ uniform vec3 uLightIntensity;
 uniform sampler2D uBaseColorTexture;
 uniform vec4 uBaseColorFactor;
 
+uniform sampler2D uEmissiveTexture;
+uniform vec3 uEmissiveFactor;
+
 uniform float uMetallicFactor;
 uniform float uRoughnessFactor;
 uniform sampler2D uMetallicRoughnessTexture;
@@ -101,6 +104,11 @@ void main()
 
   vec3 material = f_diffuse + f_specular;
 
+  // Emissive.
+  vec4 emissiveFromTexture =
+      SRGBtoLINEAR(texture(uEmissiveTexture, vTexCoords));
+  vec3 emissive = emissiveFromTexture.rgb * uEmissiveFactor;
+
   // Output.
-  fColor = LINEARtoSRGB(material * uLightIntensity * NdotL);
+  fColor = LINEARtoSRGB(material * uLightIntensity * NdotL + emissive);
 }
