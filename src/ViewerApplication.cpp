@@ -262,6 +262,13 @@ int ViewerApplication::run()
 
       glUniform1f(occlusionFactorLocation, 0.f);
       glUniform1i(occlusionEnabledLocation, 0);
+
+      // Normal map.
+      glActiveTexture(GL_TEXTURE4);
+      glBindTexture(GL_TEXTURE_2D, 0);
+      glUniform1i(normalMapTextureLocation, 4);
+      glUniform1f(normalMapFactorLocation, 0.f);
+      glUniform1i(normalMapEnabledLocation, 0);
     }
   };
 
