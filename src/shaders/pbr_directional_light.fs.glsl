@@ -21,6 +21,8 @@ uniform float uMetallicFactor;
 uniform float uRoughnessFactor;
 uniform sampler2D uMetallicRoughnessTexture;
 
+uniform sampler2D uNormalMapTexture;
+
 out vec3 fColor;
 
 // Constants

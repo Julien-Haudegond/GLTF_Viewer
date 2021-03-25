@@ -74,6 +74,9 @@ int ViewerApplication::run()
   const auto occlusionEnabledLocation =
       glGetUniformLocation(glslProgram.glId(), "uOcclusionEnabled");
 
+  const auto normalMapTextureLocation =
+      glGetUniformLocation(glslProgram.glId(), "uNormalMapTexture");
+
   glm::vec3 lightDirection(glm::sin(0.f) * glm::cos(0.f), glm::cos(0.f),
       glm::sin(0.f) * glm::sin(0.f));
   glm::vec3 lightIntensity(1.f, 1.f, 1.f);
@@ -210,6 +213,17 @@ int ViewerApplication::run()
       glUniform1f(
           occlusionFactorLocation, (float)material.occlusionTexture.strength);
       glUniform1i(occlusionEnabledLocation, (int)ambiantOcclusion);
+
+      // Normal map.
+      textureObject = 0u;
+      const auto normalMapTextureIndex = material.normalTexture.index;
+      if (normalMapTextureIndex >= 0) {
+        textureObject = textureObjects[normalMapTextureIndex];
+      }
+
+      glActiveTexture(GL_TEXTURE4);
+      glBindTexture(GL_TEXTURE_2D, textureObject);
+      glUniform1i(normalMapTextureLocation, 4);
 
     } else {
       // Base color.
