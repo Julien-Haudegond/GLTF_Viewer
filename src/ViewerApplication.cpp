@@ -675,14 +675,17 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
         const auto &accessor = model.accessors[primitive.indices];
         const auto &bufferView = model.bufferViews[accessor.bufferView];
         const auto bufferIdx = bufferView.buffer;
+        const auto byteOffset = accessor.byteOffset + bufferView.byteOffset;
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[bufferIdx]);
 
         // Compute tangents for each vertex using the indices.
         std::vector<glm::vec3> tangents(positionsCount);
-        const auto &indices = model.buffers[bufferIdx].data;
+        const auto *indices = reinterpret_cast<const unsigned short *>(
+            &model.buffers[bufferIdx].data[byteOffset]);
 
-        for (auto i = 0; i < indices.size(); i += 3) {
+        // Algo from http://ogldev.atspace.co.uk/www/tutorial26/tutorial26.html
+        for (auto i = 0; i < accessor.count; i += 3) {
           // Vertex indices.
           const auto vertex0 = indices[i];
           const auto vertex1 = indices[i + 1];
@@ -738,23 +741,11 @@ std::vector<GLuint> ViewerApplication::createVertexArrayObjects(
           t = glm::normalize(t);
         }
 
-        // Create another vector with only floats because
-        // I have no idea how to extract data from vec3 in the BufferStorage
-        // part.
-        std::vector<float> tangentsFloats(tangents.size() * 3);
-        for (auto i = 0; i < tangents.size(); ++i) {
-          const auto vec = tangents[i];
-          const auto index = i * 3;
-          tangentsFloats[index] = vec.x;
-          tangentsFloats[index + 1] = vec.y;
-          tangentsFloats[index + 2] = vec.z;
-        }
-
         GLuint bufObj;
         glGenBuffers(1, &bufObj);
         glBindBuffer(GL_ARRAY_BUFFER, bufObj);
-        glBufferStorage(GL_ARRAY_BUFFER, tangentsFloats.size() * sizeof(float),
-            tangentsFloats.data(), 0);
+        glBufferStorage(GL_ARRAY_BUFFER, tangents.size() * sizeof(glm::vec3),
+            tangents.data(), 0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         tangentBuffers.push_back(bufObj); // Used only to clean up the buffers.
 

@@ -70,8 +70,8 @@ vec3 CalcBumpedNormal()
 // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#metal-brdf-and-dielectric-brdf
 void main()
 {
-  vec3 N = normalize(vViewSpaceNormal); // Should be replaced by: normalize(CalcBumpedNormal())
-  // vec3 N = normalize(CalcBumpedNormal());
+  // vec3 N = normalize(vViewSpaceNormal); // Should be replaced by: normalize(CalcBumpedNormal())
+  vec3 N = normalize(CalcBumpedNormal());
   vec3 L = uLightDirection;
   vec3 V = normalize(-vViewSpacePosition);
   vec3 H = normalize(L + V);
